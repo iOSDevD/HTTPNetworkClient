@@ -1,0 +1,33 @@
+{
+  "configurations" : [
+    {
+      "id" : "5D82D20D-5141-4196-91C7-0A162A7A5187",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : {
+      "targets" : [
+        {
+          "containerPath" : "container:",
+          "identifier" : "HTTPNetworkClient",
+          "name" : "HTTPNetworkClient"
+        }
+      ]
+    },
+    "performanceAntipatternCheckerEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "HTTPNetworkClientTests",
+        "name" : "HTTPNetworkClientTests"
+      }
+    }
+  ],
+  "version" : 1
+}
