@@ -46,29 +46,41 @@ struct RequestBuilderTests {
     @Test("Building request, overrides the common header key")
     func testRequestOverridesHeaders() async throws {
         let url = try #require(URL(string: "https://abcd-test.com"))
-        
+
         let builder = RequestBuilder(baseURL: url, defaultHeaders: ["Authorization": "Bearer 12345"])
-        
+
         struct FakeGetUserRequest: APIRequest {
             typealias Response = String
             var path: String { "/user" }
             var method: HTTPMethod { .GET }
-            var headers: [String : String]? { ["Authorization" : "Bearer 12345New"] }
+            var headers: [String: String]? { ["Authorization": "Bearer 12345New"] }
             var queryItems: [URLQueryItem]? { [.init(name: "name", value: "john")] }
             var body: Data? { nil }
         }
-        
+
         let sut = try builder.build(FakeGetUserRequest())
-        
-        #expect(sut.url?.absoluteString == "https://abcd-test.com/user?name=john","Complete URL with base path and query items")
-        
-        let outputHeaders = try #require(sut.allHTTPHeaderFields?.keys, "HTTP headers can't be empty atleast one header should be present")
-        
+
+        #expect(
+            sut.url?.absoluteString == "https://abcd-test.com/user?name=john",
+            "Complete URL with base path and query items"
+        )
+
+        let outputHeaders = try #require(
+            sut.allHTTPHeaderFields?.keys,
+            "HTTP headers can't be empty atleast one header should be present"
+        )
+
         let outputHeaderSet = Set<String>(outputHeaders)
-        
-        #expect(outputHeaderSet == Set(["Authorization"]), "Only single header should be present. Default headers (\"Authorization\") passed during init should override when passed with build.")
-        
-        #expect(sut.allHTTPHeaderFields?["Authorization"] == "Bearer 12345New", "Authorization value should be overridden and must be 'Bearer 12345New' not 'Bearer 12345'")
+
+        #expect(
+            outputHeaderSet == Set(["Authorization"]),
+            "Only single header should be present. Default headers (\"Authorization\") passed during init should override when passed with build."
+        )
+
+        #expect(
+            sut.allHTTPHeaderFields?["Authorization"] == "Bearer 12345New",
+            "Authorization value should be overridden and must be 'Bearer 12345New' not 'Bearer 12345'"
+        )
     }
     
     

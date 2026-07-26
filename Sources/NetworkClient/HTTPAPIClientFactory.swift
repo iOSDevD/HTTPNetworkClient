@@ -11,7 +11,7 @@ import Foundation
 /// A simple public factory for constructing HTTPAPIClient instances
 /// using session object and decoder
 public enum HTTPAPIClientFactory {
-    
+
     /// Creates an `APIClient` configured with the provided request builder,
     /// session, and decoder.
     ///
@@ -24,7 +24,8 @@ public enum HTTPAPIClientFactory {
     ///     Defaults to a new `JSONDecoder` instance.
     /// - Returns: A concrete `APIClient` implementation backed by
     ///   `HTTPAPIClient`.
-    public static func make(builder: RequestBuilder, session: URLSession = .shared, decoder: JSONDecoder = .init()) -> APIClient {
+    public static func make(builder: RequestBuilder, session: URLSession = .shared, decoder: JSONDecoder = .init())
+        -> APIClient {
         return HTTPAPIClient(builder: builder, session: session, decoder: decoder)
     }
 }

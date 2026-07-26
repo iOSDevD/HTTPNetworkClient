@@ -31,7 +31,6 @@ public protocol APIRequest {
     var body: Data? { get }
 }
 
-
 /// Supported HTTP methods for API requests.
 public enum HTTPMethod: String {
     case GET, POST

@@ -19,7 +19,7 @@ public struct RequestBuilder {
     /// Headers applied to every request, overridden by request-specific headers.
     public let defaultHeaders: [String: String]
     
-    public init(baseURL: URL, defaultHeaders: [String : String]) {
+    public init(baseURL: URL, defaultHeaders: [String: String]) {
         self.baseURL = baseURL
         self.defaultHeaders = defaultHeaders
     }
