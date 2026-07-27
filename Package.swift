@@ -14,7 +14,7 @@ let package = Package(
         .library(
             name: "HTTPNetworkClient",
             targets: ["HTTPNetworkClient"]
-        ),
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/realm/SwiftLint.git",
@@ -39,7 +39,7 @@ let package = Package(
                 .plugin(name: "SwiftLintBuildToolPlugin",
                         package: "SwiftLint")
             ]
-        ),
+        )
     ],
     swiftLanguageModes: [.v6]
 )

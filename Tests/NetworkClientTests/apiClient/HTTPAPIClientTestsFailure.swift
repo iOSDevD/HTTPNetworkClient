@@ -134,7 +134,6 @@ struct HTTPAPIClientTestsFailure {
        
         let request = await makeTestRequestForTestId(inputTestIdentifier)
         
-        
         MockURLProtocol.setHandler(for: inputTestIdentifier) { request in
             let url = request.url ?? URL(string: "https://example.com/user")!
             let dummyData = Data()
@@ -211,12 +210,12 @@ extension HTTPAPIClientTestsFailure {
         typealias Response = String
         var path: String { "/user" }
         var method: HTTPMethod { .GET }
-        var headers: [String : String]? { localHeader }
+        var headers: [String: String]? { localHeader }
         var queryItems: [URLQueryItem]? { nil }
         var body: Data? { nil }
         
         private var localHeader: [String: String]
-        init(_ inputTestIdentifier: String){
+        init(_ inputTestIdentifier: String) {
             localHeader = ["X-Test-ID": inputTestIdentifier]
         }
     }

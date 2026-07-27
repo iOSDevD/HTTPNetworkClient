@@ -22,19 +22,19 @@ struct RequestBuilderTests {
             typealias Response = String
             var path: String { "/user" }
             var method: HTTPMethod { .GET }
-            var headers: [String : String]? { localHeader }
+            var headers: [String: String]? { localHeader }
             var queryItems: [URLQueryItem]? { [.init(name: "name", value: "john")] }
             var body: Data? { nil }
             
             private var localHeader: [String: String]
-            init(_ inputTestIdentifier: String){
+            init(_ inputTestIdentifier: String) {
                 localHeader = ["X-Test-ID": inputTestIdentifier]
             }
         }
         
         let sut = try builder.build(FakeGetUserRequest("abcd"))
         
-        #expect(sut.url?.absoluteString == "https://abcd-test.com/user?name=john","Complete URL with base path and query items")
+        #expect(sut.url?.absoluteString == "https://abcd-test.com/user?name=john", "Complete URL with base path and query items")
         
         let outputHeaders = try #require(sut.allHTTPHeaderFields?.keys, "HTTP headers can't be empty as there are default headers and test headers")
         
@@ -82,6 +82,5 @@ struct RequestBuilderTests {
             "Authorization value should be overridden and must be 'Bearer 12345New' not 'Bearer 12345'"
         )
     }
-    
     
 }
