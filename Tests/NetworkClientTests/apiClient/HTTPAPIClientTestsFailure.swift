@@ -10,24 +10,55 @@ import Foundation
 import Testing
 @testable import HTTPNetworkClient
 
+struct FailureGetUserRequest: APIRequest {
+    typealias Response = String
+
+    let testIdentifier: String
+
+    var path: String { "/user" }
+    var method: HTTPMethod { .GET }
+    var headers: [String: String]? { ["X-Test-ID": testIdentifier] }
+    var queryItems: [URLQueryItem]? { nil }
+    var body: Data? { nil }
+}
+
+private final class FakeURLResponse: URLResponse, @unchecked Sendable {
+    override init(
+        url: URL,
+        mimeType: String? = nil,
+        expectedContentLength: Int = 0,
+        textEncodingName: String? = nil
+    ) {
+        super.init(
+            url: url,
+            mimeType: mimeType,
+            expectedContentLength: expectedContentLength,
+            textEncodingName: textEncodingName
+        )
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+}
+
 @Suite("HTTP Client Tests - Failure")
 struct HTTPAPIClientTestsFailure {
-    
-    @Test("Client Error Codes", arguments: 400...499 )
+    @Test("Client Error Codes", arguments: 400...499)
     func testClientFailure(clientErrorCode: Int) async throws {
         let inputTestIdentifier = "testClientError-\(UUID().uuidString)"
-        
         let client = await makeClientForTestId(inputTestIdentifier)
-       
         let request = await makeTestRequestForTestId(inputTestIdentifier)
-        
+
         MockURLProtocol.setHandler(for: inputTestIdentifier) { request in
-            let url = request.url ?? URL(string: "https://example.com/user")!
             let dummyData = Data()
-            let response = HTTPURLResponse(url: url, statusCode: clientErrorCode, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            let response = try makeFailureResponse(
+                for: request,
+                statusCode: clientErrorCode
+            )
             return (response, dummyData)
         }
-        
+
         let error = await #expect(throws: APIError.self) {
             try await client.send(request)
         }
@@ -38,7 +69,6 @@ struct HTTPAPIClientTestsFailure {
             Issue.record("Expected .clientError but got \(String(describing: error))")
         }
     }
-    
     @Test("Server Error Codes", arguments: 500...599 )
     func testServerFailure(serverErrorCode: Int) async throws {
         let inputTestIdentifier = "testServerError-\(UUID().uuidString)"
@@ -48,9 +78,11 @@ struct HTTPAPIClientTestsFailure {
         let request = await makeTestRequestForTestId(inputTestIdentifier)
         
         MockURLProtocol.setHandler(for: inputTestIdentifier) { request in
-            let url = request.url ?? URL(string: "https://example.com/user")!
             let dummyData = Data()
-            let response = HTTPURLResponse(url: url, statusCode: serverErrorCode, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            let response = try makeFailureResponse(
+                for: request,
+                statusCode: serverErrorCode
+            )
             return (response, dummyData)
         }
         
@@ -64,7 +96,6 @@ struct HTTPAPIClientTestsFailure {
             Issue.record("Expected .serverError but got \(String(describing: error))")
         }
     }
-    
     @Test("Unsupported Error code")
     func testInvalidResponse() async throws {
         let inputTestIdentifier = "testClientError-\(UUID().uuidString)"
@@ -74,9 +105,8 @@ struct HTTPAPIClientTestsFailure {
         let request = await makeTestRequestForTestId(inputTestIdentifier)
         
         MockURLProtocol.setHandler(for: inputTestIdentifier) { request in
-            let url = request.url ?? URL(string: "https://example.com/user")!
             let dummyData = Data()
-            let response = HTTPURLResponse(url: url, statusCode: 600, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            let response = try makeFailureResponse(for: request, statusCode: 600)
             return (response, dummyData)
         }
         
@@ -89,7 +119,6 @@ struct HTTPAPIClientTestsFailure {
         }())
 
     }
-    
     @Test("Network Error code")
     func testNetworkError() async throws {
         let inputTestIdentifier = "testNetworkError-\(UUID().uuidString)"
@@ -100,11 +129,10 @@ struct HTTPAPIClientTestsFailure {
         
         // mockResponseId does not match inputTestIdentifier, MockURLProtocol
         // will throw URLError.badServerResponse
-        let mockResponseId = inputTestIdentifier+"Test"
+        let mockResponseId = inputTestIdentifier + "Test"
         MockURLProtocol.setHandler(for: mockResponseId) { request in
-            let url = request.url ?? URL(string: "https://example.com/user")!
             let dummyData = Data()
-            let response = HTTPURLResponse(url: url, statusCode: 600, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            let response = try makeFailureResponse(for: request, statusCode: 600)
             return (response, dummyData)
         }
         
@@ -135,18 +163,10 @@ struct HTTPAPIClientTestsFailure {
         let request = await makeTestRequestForTestId(inputTestIdentifier)
         
         MockURLProtocol.setHandler(for: inputTestIdentifier) { request in
-            let url = request.url ?? URL(string: "https://example.com/user")!
-            let dummyData = Data()
-            class FakeURLResponse: URLResponse, @unchecked Sendable {
-                // Initialize it with basic URL metadata
-                override init(url: URL, mimeType: String? = nil, expectedContentLength: Int = 0, textEncodingName: String? = nil) {
-                    super.init(url: url, mimeType: mimeType, expectedContentLength: expectedContentLength, textEncodingName: textEncodingName)
-                }
-                
-                required init?(coder: NSCoder) {
-                    super.init(coder: coder)
-                }
+            guard let url = request.url else {
+                throw URLError(.badURL)
             }
+            let dummyData = Data()
             let response = FakeURLResponse(url: url)
             return (response, dummyData)
         }
@@ -173,8 +193,7 @@ struct HTTPAPIClientTestsFailure {
         let json = try loadJSON("userDecodingError")
         
         MockURLProtocol.setHandler(for: inputTestIdentifier) { request in
-            let url = request.url ?? URL(string: "https://example.com/user")!
-            let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            let response = try makeFailureResponse(for: request, statusCode: 200)
             return (response, json)
         }
         
@@ -191,32 +210,40 @@ struct HTTPAPIClientTestsFailure {
 }
 
 extension HTTPAPIClientTestsFailure {
-    
     func makeClientForTestId(_ inputTestIdentifier: String) async -> HTTPAPIClient {
         // Configure URLSession with our MockURLProtocol
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
         let session = URLSession(configuration: config)
         
-        let builder = RequestBuilder(baseURL: URL(string: "https://example.com")!, defaultHeaders: ["Accept": "application/json"])
+        let builder = RequestBuilder(
+            baseURL: URL(string: "https://example.com")!,
+            defaultHeaders: ["Accept": "application/json"]
+        )
         return HTTPAPIClient(builder: builder, session: session)
     }
     
-    func makeTestRequestForTestId(_ inputTestIdentifier: String) async -> GetUserRequest {
-        return GetUserRequest(inputTestIdentifier)
+    func makeTestRequestForTestId(_ inputTestIdentifier: String) async -> FailureGetUserRequest {
+        FailureGetUserRequest(testIdentifier: inputTestIdentifier)
     }
-    
-    struct GetUserRequest: APIRequest {
-        typealias Response = String
-        var path: String { "/user" }
-        var method: HTTPMethod { .GET }
-        var headers: [String: String]? { localHeader }
-        var queryItems: [URLQueryItem]? { nil }
-        var body: Data? { nil }
-        
-        private var localHeader: [String: String]
-        init(_ inputTestIdentifier: String) {
-            localHeader = ["X-Test-ID": inputTestIdentifier]
-        }
+}
+
+private func makeFailureResponse(
+    for request: URLRequest,
+    statusCode: Int
+) throws -> HTTPURLResponse {
+    guard let url = request.url else {
+        throw URLError(.badURL)
     }
+
+    guard let response = HTTPURLResponse(
+        url: url,
+        statusCode: statusCode,
+        httpVersion: nil,
+        headerFields: ["Content-Type": "application/json"]
+    ) else {
+        throw URLError(.cannotParseResponse)
+    }
+
+    return response
 }

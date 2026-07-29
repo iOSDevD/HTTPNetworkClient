@@ -10,44 +10,45 @@ import Foundation
 import Testing
 @testable import HTTPNetworkClient
 
+private struct SuccessUser: Decodable, Equatable {
+    let id: Int
+    let name: String
+}
+
+private struct SuccessGetUserRequest: APIRequest {
+    typealias Response = SuccessUser
+
+    let testIdentifier: String
+
+    var path: String { "/user" }
+    var method: HTTPMethod { .GET }
+    var headers: [String: String]? { ["X-Test-ID": testIdentifier] }
+    var queryItems: [URLQueryItem]? { nil }
+    var body: Data? { nil }
+}
+
 @Suite("HTTP Client Tests - Success")
 struct HTTPAPIClientTestsSuccess {
     @Test func testHTTPClientSuccess() async throws {
-    
-        struct User: Decodable, Equatable {
-            let id: Int
-            let name: String
-        }
-
         let inputTestIdentifier = "testIdSuccess-\(UUID().uuidString)"
-        struct GetUserRequest: APIRequest {
-            typealias Response = User
-            var path: String { "/user" }
-            var method: HTTPMethod { .GET }
-            var headers: [String: String]? { localHeader }
-            var queryItems: [URLQueryItem]? { nil }
-            var body: Data? { nil }
-            private var localHeader: [String: String]
-            init(_ inputTestIdentifier: String) {
-                localHeader = ["X-Test-ID": inputTestIdentifier]
-            }
-        }
 
         // Configure URLSession with our MockURLProtocol
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
         let session = URLSession(configuration: config)
 
-        let builder = RequestBuilder(baseURL: URL(string: "https://example.com")!, defaultHeaders: ["Accept": "application/json"]) 
+        let builder = RequestBuilder(
+            baseURL: URL(string: "https://example.com")!,
+            defaultHeaders: ["Accept": "application/json"]
+        )
         let client = HTTPAPIClient(builder: builder, session: session)
 
-        let request = GetUserRequest(inputTestIdentifier)
-        
+        let request = SuccessGetUserRequest(testIdentifier: inputTestIdentifier)
+
         // Stub a successful 200 response
         let json = try loadJSON("userSuccess")
         MockURLProtocol.setHandler(for: inputTestIdentifier) { request in
-            let url = request.url ?? URL(string: "https://example.com/user")!
-            let response = HTTPURLResponse(url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"])!
+            let response = try makeSuccessResponse(for: request)
             return (response, json)
         }
 
@@ -55,4 +56,21 @@ struct HTTPAPIClientTestsSuccess {
         #expect(user.id == 42)
         #expect(user.name == "Ada")
     }
+}
+
+private func makeSuccessResponse(for request: URLRequest) throws -> HTTPURLResponse {
+    guard let url = request.url else {
+        throw URLError(.badURL)
+    }
+
+    guard let response = HTTPURLResponse(
+        url: url,
+        statusCode: 200,
+        httpVersion: nil,
+        headerFields: ["Content-Type": "application/json"]
+    ) else {
+        throw URLError(.cannotParseResponse)
+    }
+
+    return response
 }
