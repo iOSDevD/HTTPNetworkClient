@@ -1,0 +1,58 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out
+#
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out
+#
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+require "fileutils"
+require "shellwords"
+
+default_platform(:ios)
+
+platform :ios do
+  desc "Run Swift Package tests and write an xcresult bundle plus coverage summary"
+  lane :test_and_summary do
+    package_path = File.expand_path("..", __dir__)
+    output_dir = File.join(__dir__, "test_output")
+    xcresult_path = File.join(output_dir, "HTTPNetworkClient.xcresult")
+    coverage_path = File.join(output_dir, "coverage_summary.txt")
+
+    FileUtils.mkdir_p(output_dir)
+
+    # Let scan select an available iOS simulator rather than choosing one at random.
+    run_tests(
+      package_path: package_path,
+      scheme: "HTTPNetworkClient",
+      derived_data_path: File.join(output_dir, "DerivedData"),
+      result_bundle_path: xcresult_path,
+      code_coverage: true,
+      output_directory: output_dir,
+      xcodebuild_formatter: "xcbeautify"
+    )
+
+    UI.user_error!("Could not locate the test result bundle at #{xcresult_path}") unless File.exist?(xcresult_path)
+
+    coverage_summary = sh("xcrun xccov view --report #{Shellwords.shellescape(xcresult_path)}")
+    File.write(coverage_path, coverage_summary)
+    UI.header("📊 CODE COVERAGE REPORT")
+    puts "\n#{coverage_summary}"
+
+    if ENV['GITHUB_STEP_SUMMARY']
+      File.open(ENV['GITHUB_STEP_SUMMARY'], 'a') do |file|
+        file.puts "## 📊 Code Coverage Report"
+        file.puts "```"
+        file.puts coverage_summary
+        file.puts "```"
+      end
+    end
+  end
+end

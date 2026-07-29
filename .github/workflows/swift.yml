@@ -11,24 +11,41 @@ on:
 
 jobs:
   build:
-
     runs-on: macos-latest
 
     steps:
-    - name: Checkout source
-      uses: actions/checkout@v4
-      
-    - name: Show Swift version
-      run: swift --version
-      
-    - name: Install Swift lint
-      run: brew install swiftlint
-      
-    - name: Swiftlint
-      run: swiftlint lint
-      
-    - name: Build
-      run: swift build -v
-      
-    - name: Run tests
-      run: swift test -v
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby and Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Lint
+        run: swiftlint lint
+
+      - name: Test and generate coverage
+        run: bundle exec fastlane ios test_and_summary
+
+      - name: Upload xcresult bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: fastlane/test_output/HTTPNetworkClient.xcresult
+          if-no-files-found: error
+
+      - name: Upload coverage summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-summary
+          path: fastlane/test_output/coverage_summary.txt
+          if-no-files-found: error
