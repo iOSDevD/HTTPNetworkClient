@@ -4,6 +4,7 @@ disabled_rules:
 excluded:
   - .build
   - fastlane/test_output
+  - vendor
 
 opt_in_rules:
   - empty_count

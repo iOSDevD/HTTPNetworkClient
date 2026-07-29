@@ -1,2 +1,3 @@
 .build/
 fastlane/test_output/
+vendor/bundle/
