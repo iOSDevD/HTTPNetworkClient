@@ -46,7 +46,7 @@ jobs:
         if: ${{ always() && hashFiles('fastlane/test_output/HTTPNetworkClient.xcresult/**') != '' }}
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: HTTPNetworkClient.xcresult
           path: fastlane/test_output/HTTPNetworkClient.xcresult
 
       - name: Upload coverage summary
