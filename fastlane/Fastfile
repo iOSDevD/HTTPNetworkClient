@@ -48,6 +48,7 @@ platform :ios do
       ensure_devices_found: true,
       derived_data_path: File.join(output_dir, "DerivedData"),
       result_bundle_path: xcresult_path,
+      xcargs: "-skipPackagePluginValidation",
       code_coverage: true,
       output_directory: output_dir
     )
