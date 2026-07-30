@@ -1,3 +1,5 @@
 .build/
+test_output/
 fastlane/test_output/
+fastlane/report.xml
 vendor/bundle/

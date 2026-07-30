@@ -21,7 +21,7 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 [bundle exec] fastlane ios test_and_summary
 ```
 
-Run SPM tests and output coverage summary uniformly
+Run Swift Package tests and write an xcresult bundle plus coverage summary
 
 ----
 

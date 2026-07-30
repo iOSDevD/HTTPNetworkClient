@@ -21,22 +21,35 @@ default_platform(:ios)
 platform :ios do
   desc "Run Swift Package tests and write an xcresult bundle plus coverage summary"
   lane :test_and_summary do
-    package_path = File.expand_path("..", __dir__)
-    output_dir = File.join(__dir__, "test_output")
+    UI.message("Starting test and summary")
+    # Fastlane changes its working directory while running scan, so resolve all
+    # artifact paths before invoking run_tests.
+    fastlane_dir = File.expand_path(FastlaneCore::FastlaneFolder.path)
+    package_path = File.expand_path("..", fastlane_dir)
+    output_dir = File.join(fastlane_dir, "test_output")
     xcresult_path = File.join(output_dir, "HTTPNetworkClient.xcresult")
     coverage_path = File.join(output_dir, "coverage_summary.txt")
 
     FileUtils.mkdir_p(output_dir)
+    FileUtils.rm_rf(xcresult_path)
 
-    # Let scan select an available iOS simulator rather than choosing one at random.
+    available_simulators = FastlaneCore::Simulator.all.select do |simulator|
+      simulator.os_type == "iOS" && simulator.state != "Unavailable"
+    end
+    simulator = available_simulators.sort_by(&:name).first
+    UI.user_error!("No available iOS simulators were found") unless simulator
+
+    UI.message("Testing on iOS Simulator: #{simulator.name}")
+
     run_tests(
       package_path: package_path,
       scheme: "HTTPNetworkClient",
+      device: simulator.name,
+      ensure_devices_found: true,
       derived_data_path: File.join(output_dir, "DerivedData"),
       result_bundle_path: xcresult_path,
       code_coverage: true,
-      output_directory: output_dir,
-      xcodebuild_formatter: "xcbeautify"
+      output_directory: output_dir
     )
 
     UI.user_error!("Could not locate the test result bundle at #{xcresult_path}") unless File.exist?(xcresult_path)

@@ -33,7 +33,14 @@ jobs:
         run: swiftlint lint
 
       - name: Test and generate coverage
-        run: bundle exec fastlane ios test_and_summary
+        run: bundle exec fastlane ios test_and_summary --verbose
+
+      - name: Upload Fastlane build log
+        if: ${{ always() && hashFiles('fastlane/test_output/*.log') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastlane-build-log
+          path: fastlane/test_output/*.log
 
       - name: Upload xcresult bundle
         if: ${{ always() && hashFiles('fastlane/test_output/HTTPNetworkClient.xcresult/**') != '' }}
